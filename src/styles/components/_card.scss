@@ -1,0 +1,15 @@
+.icon-container{
+    background-color: #e4f1f7;
+    position: relative;
+    width: max-content;
+
+    .badge-container{
+        position: absolute;
+        right: -20px;
+        bottom: -10px;
+        background-color: #393939;
+        color: white;
+        width: 30px;
+        height: 30px;
+    }
+}

@@ -1,0 +1,29 @@
+.main {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  min-height: 100vh;
+
+  .hero1 {
+    background-color: #e6f6ff;
+  }
+
+  .bgWhite {
+    background-color: #fff;
+  }
+
+  .hero2 {
+    background-color: #e6f6ff;
+  }
+
+  .hero3 {
+    background-image: url(/imgs/half-bg.png);
+    background-position: center center;
+    background-size: cover;
+  }
+  
+  .infoCard {
+    background-color: #ebf3f7;
+  }
+}

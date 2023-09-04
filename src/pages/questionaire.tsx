@@ -1,0 +1,258 @@
+import Head from 'next/head'
+import { toast } from "react-toastify";
+import { Range } from 'react-range';
+import styles from '@/styles/Common.module.scss'
+import Navbar from '@/components/Navbar'
+import Footer from '@/components/Footer'
+import Button, { ButtonType } from '@/components/Button'
+import QuestionnaireLayout from '@/layouts/QuestionnaireLayout'
+import ProgressBar from '@/components/ProgressBar'
+import { useEffect, useMemo, useState } from 'react'
+import Textarea from '@/components/Textarea'
+import Checkbox from '@/components/Checkbox'
+import MultipleUploads from '@/components/MultipleUploads'
+import LocalAPIClient from '@/utils/localApi'
+import { useRouter } from 'next/router';
+
+export default function Questionaire() {
+    const router = useRouter();
+    const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+    const [activatedValue, setActivatedValue]: any = useState(null);
+    const [optionText, setOptionText]: any = useState('');
+    const [textValue, setTextValue]: any = useState('');
+    const [stepValues, setStepValues]: any = useState([]);
+    const [questions, setQuestions]: any = useState({});
+    const [answers, setAnswers]: any = useState({});
+    const [loading, setLoading]: any = useState(false);
+
+    const currentQuestion = useMemo(() => {
+        const keys = Object.keys(questions);
+        return questions[keys[currentQuestionIndex]];
+    }, [currentQuestionIndex, questions]);
+
+    const currentQuestionKey = useMemo(() => {
+        const keys = Object.keys(questions);
+        return keys[currentQuestionIndex];
+    }, [currentQuestionIndex, questions]);
+
+    const handleClickOption = (opt: any) => {
+        setActivatedValue(opt);
+    };
+
+    const handleChangeTextValue = (val: string) => {
+        setTextValue(val);
+    };
+
+    const handleOptionTextChange = (val: string) => {
+        setOptionText(val);
+    };
+
+    const handleSubmit = async () => {
+        setLoading(true);
+        const res = await LocalAPIClient.post('/api/case/save-questions', answers);
+        setLoading(false);
+        if (res.status === 200) {
+            toast('Success', { type: 'success', autoClose: 2000 });
+            router.push('/questionaire-verify');
+        } else {
+            toast('Error', { type: 'error', autoClose: 2000 });
+        }
+    };
+
+    const handleNext = () => {
+        if (currentQuestionIndex < Object.keys(questions).length - 1) {
+            stepValues[currentQuestionIndex] = {
+                value: currentQuestion.type === 'radio' ? activatedValue : textValue,
+                optValue: optionText,
+                type: currentQuestion.type,
+            };
+            setStepValues([...stepValues]);
+            answers[currentQuestionKey] = currentQuestion.type === 'radio' ? activatedValue : textValue;
+            setAnswers({...answers});
+            if (currentQuestion.validation && (!answers[currentQuestionKey] || (answers[currentQuestionKey] && currentQuestion.validation.regex && new RegExp(currentQuestion.validation.regex).test(answers[currentQuestionKey])))) {
+                if (currentQuestion.validation.message) {
+                    toast(currentQuestion.validation.message, { type: 'error', autoClose: 2000 });
+                } else {
+                    toast('You need to fill information to process all steps.', { type: 'error', autoClose: 2000 });
+                }
+                return;
+            }
+            setCurrentQuestionIndex(currentQuestionIndex + 1);
+        } else if (currentQuestionIndex === Object.keys(questions).length - 1) {
+            handleSubmit();
+        }
+        setActivatedValue(null);
+        setTextValue('');
+        setOptionText('');
+    };
+
+    const handlePrevious = () => {
+        setActivatedValue(null);
+        setTextValue('');
+        setOptionText('');
+        if (currentQuestionIndex > 0) {
+            setCurrentQuestionIndex(currentQuestionIndex - 1);
+        }
+    };
+
+    useEffect(() => {
+        const currentStepValue = stepValues[currentQuestionIndex];
+        if (currentStepValue) {
+            if (currentStepValue.type === 'radio') {
+                setActivatedValue(currentStepValue.value);
+                if (currentStepValue.optValue) {
+                    setOptionText(currentStepValue.optValue);
+                }
+            } else {
+                setTextValue(currentStepValue.value);
+            }
+        } else {
+            setActivatedValue(null);
+            setTextValue('');
+            setOptionText('');
+        }
+    }, [currentQuestionIndex]);
+
+    const getData = async () => {
+        const _questions = await LocalAPIClient.get('/api/case/questions');
+        setQuestions(_questions);
+    };
+
+    useEffect(() => {
+        getData();
+    }, []);
+
+    if (!Object.keys(questions).length) {
+        return (
+            <>
+                <Head>
+                    <title>Uplink Health</title>
+                    <meta name='description' content='Generated by Uplink Health' />
+                    <meta name='viewport' content='width=device-width, initial-scale=1' />
+                    <link rel='icon' href='/favicon.ico' />
+                </Head>
+                <Navbar />
+                <main className={styles.main}></main>
+            </>
+        );
+    }
+
+    return (
+        <>
+            <Head>
+                <title>Uplink Health</title>
+                <meta name='description' content='Generated by Uplink Health' />
+                <meta name='viewport' content='width=device-width, initial-scale=1' />
+                <link rel='icon' href='/favicon.ico' />
+            </Head>
+            <Navbar />
+            <main className={styles.main}>
+                <QuestionnaireLayout className={'w-1/2'} activeStep={2} title={'STEP2: Complete Health Questionnaire'}>
+                    <ProgressBar current={currentQuestionIndex + 1} total={Object.keys(questions).length} />
+                    <div className='my-8 w-full'>
+                        <p className='font-weight-bold text-[18px] text-[#4d4d4d] mb-4'>{currentQuestion.label}</p>
+                        {currentQuestion.type === 'radio' && (
+                            <>
+                                <div className='flex my-4 flex-wrap'>
+                                    {Object.keys(currentQuestion.answers).map((option) => (
+                                        <Button title={currentQuestion.answers[option]} onClick={() => handleClickOption(option)} type={ButtonType.default} activated={activatedValue === currentQuestion.answers[option]} key={currentQuestion.answers[option]} />
+                                    ))}
+                                </div>
+                                {(currentQuestion.show_more && Object.keys(currentQuestion.show_more)[0] == activatedValue) && (
+                                    <>
+                                        {questions[currentQuestion.show_more[Object.keys(currentQuestion.show_more)[0]][0]].type === 'textarea' && (
+                                            <>
+                                                <p className='font-weight-bold text-[18px] text-[#4d4d4d] mb-4'>{questions[currentQuestion.show_more[Object.keys(currentQuestion.show_more)[0]][0]].label}</p>
+                                                <div className='flex my-4'>
+                                                    <Textarea onChange={handleOptionTextChange} value={optionText} />
+                                                </div>
+                                            </>
+                                        )}
+                                        {(currentQuestion.show_more[Object.keys(currentQuestion.show_more)[0]][1] && currentQuestion.show_more[Object.keys(currentQuestion.show_more)[0]][1] === 'upload_file') && (
+                                            <MultipleUploads />
+                                        )}
+                                    </>
+                                )}
+                            </>
+                        )}
+                        {currentQuestion.type === 'checkbox' && (
+                            <>
+                                <div className='flex my-4 flex-wrap'>
+                                    {Object.keys(currentQuestion.answers).map((option) => (
+                                        <Button title={currentQuestion.answers[option]} onClick={() => handleClickOption(option)} type={ButtonType.default} activated={activatedValue === currentQuestion.answers[option]} key={currentQuestion.answers[option]} />
+                                    ))}
+                                </div>
+                                {(currentQuestion.show_more && Object.keys(currentQuestion.show_more)[0] == activatedValue) && (
+                                    <>
+                                        {questions[currentQuestion.show_more[Object.keys(currentQuestion.show_more)[0]][0]].type === 'textarea' && (
+                                            <>
+                                                <p className='font-weight-bold text-[18px] text-[#4d4d4d] mb-4'>{questions[currentQuestion.show_more[Object.keys(currentQuestion.show_more)[0]][0]].label}</p>
+                                                <div className='flex my-4'>
+                                                    <Textarea onChange={handleOptionTextChange} value={optionText} />
+                                                </div>
+                                            </>
+                                        )}
+                                        {(currentQuestion.show_more[Object.keys(currentQuestion.show_more)[0]][1] && currentQuestion.show_more[Object.keys(currentQuestion.show_more)[0]][1] === 'upload_file') && (
+                                            <MultipleUploads />
+                                        )}
+                                    </>
+                                )}
+                            </>
+                        )}
+                        {currentQuestion.type === 'slider' && (
+                            <>
+                                <div className='flex my-4 flex-wrap'>
+                                    {Object.keys(currentQuestion.answers).map((option) => (
+                                        <Button title={currentQuestion.answers[option]} onClick={() => handleClickOption(option)} type={ButtonType.default} isHTMLLabel={true} activated={activatedValue === option} key={currentQuestion.answers[option]} />
+                                    ))}
+                                </div>
+                                {(currentQuestion.show_more && Object.keys(currentQuestion.show_more)[0] == activatedValue) && (
+                                    <>
+                                        {questions[currentQuestion.show_more[Object.keys(currentQuestion.show_more)[0]][0]].type === 'textarea' && (
+                                            <>
+                                                <p className='font-weight-bold text-[18px] text-[#4d4d4d] mb-4'>{questions[currentQuestion.show_more[Object.keys(currentQuestion.show_more)[0]][0]].label}</p>
+                                                <div className='flex my-4'>
+                                                    <Textarea onChange={handleOptionTextChange} value={optionText} />
+                                                </div>
+                                            </>
+                                        )}
+                                        {(currentQuestion.show_more[Object.keys(currentQuestion.show_more)[0]][1] && currentQuestion.show_more[Object.keys(currentQuestion.show_more)[0]][1] === 'upload_file') && (
+                                            <MultipleUploads />
+                                        )}
+                                    </>
+                                )}
+                            </>
+                        )}
+                        {currentQuestion.type === 'textarea' && (
+                            <div className='flex my-4'>
+                                <Textarea onChange={handleChangeTextValue} value={textValue} />
+                            </div>
+                        )}
+                    </div>
+                    <div className='my-4 flex'>
+                        {currentQuestionIndex === Object.keys(questions).length - 1 && (
+                            <div className='flex flex-col justify-center items-center'>
+                                <Checkbox label='I agree to the Terms and Conditions, Privacy, and I consent to a Telehealth visit' />
+                                <p className='text-xs'>You need to agree an conditions</p>
+                                <Button title='Submit' disabled={loading} containerClassName='ml-4' type={ButtonType.redOutline} onClick={handleNext} />
+                            </div>
+                        )}
+                        {currentQuestionIndex < Object.keys(questions).length - 1 && (
+                            <>
+                                <Button title='Previous' type={ButtonType.greyOutline} onClick={handlePrevious} />
+                                <Button title='Next' containerClassName='ml-4' type={ButtonType.redOutline} onClick={handleNext} />
+                            </>
+                        )}
+                    </div>
+                </QuestionnaireLayout>
+                <Footer />
+            </main>
+        </>
+    )
+}
+
+export async function getServerSideProps(context: any) {
+    return {
+        props: {},
+    }
+}

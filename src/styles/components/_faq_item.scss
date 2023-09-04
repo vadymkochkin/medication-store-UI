@@ -1,0 +1,15 @@
+.faq-content-container {
+    cursor: pointer;
+    user-select: none;
+
+    p {
+        transition: all 0.5s;
+    }
+
+    .collapsed {
+        height: 0;
+        overflow: hidden;
+        transition: all 0.5s;
+    }
+
+}

@@ -1,0 +1,23 @@
+.main {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  min-height: 100vh;
+
+  .hero1 {
+    background-color: #efefef;
+  }
+
+  .bgWhite {
+    background-color: #fff;
+  }
+
+  .hero3 {
+    background-color: #eaf5ef;
+  }
+  
+  .infoCard {
+    background-color: #ebf3f7;
+  }
+}

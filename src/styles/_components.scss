@@ -1,0 +1,13 @@
+@import './components/divider';
+@import './components/card';
+@import './components/benefit_item';
+@import './components/faq_item';
+
+.progress-bar-bg{
+  background-image: url(/imgs/stripe-bg.png);
+  background-position: center;
+
+  div {
+    transition: all 0.5s;
+  }
+}
